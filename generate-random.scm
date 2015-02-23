@@ -46,8 +46,8 @@
           (series) (loop (- counter 1)))))))
 
 ;; '#(#(2.4 3.3) #(-1.7 2.8))
-(define in1 (generator (^ () (rand-laplace 0.0 1.0)) 3000))
-(define in2 (generator (^ () (rand-laplace 0.0 1.0)) 3000))
+(define in1 (generator (^ () (rand-laplace 0.0 1.0)) 10))
+(define in2 (generator (^ () (rand-laplace 0.0 1.0)) 10))
 (define m (vector->matrix '#(#(2.4 3.3) #(3.3 2.8))))
 (define result (transpose (map (^ (a b) (* m (vector a b))) in1 in2)))
 (define out1 (result 0))

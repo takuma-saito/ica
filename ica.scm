@@ -62,15 +62,18 @@
              (^ (z) (* z (let ([v (inner-product z weight)]) (* v v v)))) trials)
             (* 3 weight)))))
 
+(define (id x) x)
+
 ;; I use steepest decent method to find optimal weight.
 (define (find-opt-weight zs :optional
-                         (init-weight (make-init-vector (length zs))))
+                         (init-weight (make-init-vector (length zs)))
+                         (otho id))
   (let* ([weight init-weight]
          [step-size 2.0]
          [curr-gradient (make-init-vector (length zs))])
     (do-ec (: i 0 10) ;; hard coded maximum loop
            (let* ([gradient (calc-gradient weight zs)]
-                  [new-weight (normalize (+ weight (* step-size gradient)))])
+                  [new-weight (otho (normalize (+ weight (* step-size gradient))))])
              ;; debug
              (display #`",(point->angle gradient) ,(normalize gradient)\n"
                       (standard-error-port))
@@ -92,21 +95,17 @@
         [w (make-init-vector (length vars))])
     (do-ec (: i 0 (length vars))
            (begin
-             (let ([new-weight (find-opt-weight zs w)])
-               ;; Computing another basis vector sometimes doesn't work
-               (=: w (othogonalize new-weight (cons w weights))) 
+             (let ([new-weight
+                    (find-opt-weight
+                     zs w
+                     (^ (weight) (othogonalize weight weights)))])
+               (=: w (othogonalize new-weight (cons w weights)))
                (=: weights (cons new-weight weights)))))
     (vector->matrix
      (transpose (list->vector weights)))))
 
 (define (is-comment? x)
   (eqv? (~ x 0) #\#))
-
-(define F (- (ash 1 31) 1))
-
-(define (int->real x) (inexact (/ x F)))
-
-(define (real->int x) (x->integer (* x F)))
 
 (define (read-vars filename)
   (call-with-input-file
@@ -121,7 +120,7 @@
                       [else ;; Error maybe occure at this line, future fix
                        (=: vars
                            (cons (list->vector
-                                  (map (.$ int->real string->number)
+                                  (map string->number
                                        (string-split line " "))) vars))]))
          (values (transpose (list->vector (reverse vars)))
                  ((cut string-append <> "\n")
@@ -130,7 +129,7 @@
 (define (show-signals signals :optional (comments ""))
   (display comments)
   (do-ec (: signal (transpose signals))
-         (print #`",(real->int (~ signal 0)) ,(real->int (~ signal 1))")))
+         (print #`",(~ signal 0) ,(~ signal 1)")))
 
 (define (with-estimate-signals filename fn)
   (receive (vars comments) (read-vars filename)
@@ -142,10 +141,12 @@
            (let ([zs (whitening vars)])
              (display comments)
              (do-ec (: trial (transpose zs))
-                    (print #`",(real->int (trial 0))   ,(real->int (trial 1))")))))
+                    (print #`",(trial 0)   ,(trial 1)")))))
 
-(define (show-estimate-signals filename)
-  (with-estimate-signals filename show-signals))
+(define (show-estimate-signals filename :optional (hook id))
+  (with-estimate-signals filename
+                         (^ (result comments)
+                            (show-signals (map hook result) comments))))
 
 (define (compare-estimate-signals outfile infile)
   (with-estimate-signals
@@ -165,12 +166,13 @@
 
 ;; (p (ica (read-vars "out.txt")) :print)
 
-;; (show-estimate-signals "a.txt")
+;; (show-estimate-signals "music.txt" normalize)
 
 ;; (compare-estimate-signals "out.txt" "in.txt")
 
 ;; debug
-(show-whitening (read-vars "a.tx"t))
+;; (show-whitening "music.txt")
+
 ;; (p (ica (read-vars "out.txt")) :print)
 ;; (point->angle '#(0.7116873719039802  0.718638469194167))
 ;; (point->angle '#(-0.7024963236006333  0.6953838872121385))
