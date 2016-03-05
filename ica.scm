@@ -117,7 +117,7 @@
                 (cond [(string=? line "")] ;; continue
                       [(is-comment? line)
                        (=: comments (cons line comments))]
-                      [else ;; Error maybe occure at this line, future fix
+                      [else ;; Error sometimes occure in this line, future fix
                        (=: vars
                            (cons (list->vector
                                   (map string->number
@@ -166,12 +166,12 @@
 
 ;; (p (ica (read-vars "out.txt")) :print)
 
-;; (show-estimate-signals "music.txt" normalize)
+;; (show-estimate-signals "mixed.txt" normalize)
 
-;; (compare-estimate-signals "out.txt" "in.txt")
+(compare-estimate-signals "out.txt" "in.txt")
 
 ;; debug
-;; (show-whitening "music.txt")
+;; (show-whitening "mixed.txt")
 
 ;; (p (ica (read-vars "out.txt")) :print)
 ;; (point->angle '#(0.7116873719039802  0.718638469194167))
